@@ -22,7 +22,7 @@ nsink_prep_data."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax
     
     <a class="navbar-brand me-2" href="../index.html">nsink</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,7 +79,8 @@ This function assumes data has been downloaded with
 <span>  <span class="va">input_data</span>,</span>
 <span>  off_network_lakes <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  off_network_streams <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  off_network_canalsditches <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  off_network_canalsditches <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  off_network_out <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -111,6 +112,11 @@ value is to use the 25th percentile of removal from third order streams in
 the HUC. If another value is desired provide a single numeric ranging from
 0 to 1.</p></dd>
 
+
+<dt>off_network_out</dt>
+<dd><p>Optional argument to have the off network features
+returned on the output list.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -120,7 +126,8 @@ the HUC. If another value is desired provide a single numeric ranging from
         the nitrogen removal, a second layer with the type of removal (e.g.
         hydric soils, lakes, streams), 2) a polygon representing removal from
         land, and 3) a polygon representing removal from the stream network,
-        including stream removal, and lake removal.</p>
+        including stream removal, and lake removal. Optionally, the off network
+        waterbodies may be returned if off_network_out == TRUE.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -134,7 +141,7 @@ the HUC. If another value is desired provide a single numeric ranging from
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/USEPA/nsink" class="external-link">nsink</a></span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://jhollist.github.io/nsink/">nsink</a></span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">niantic_huc</span> <span class="op">&lt;-</span> <span class="fu"><a href="nsink_get_huc_id.html">nsink_get_huc_id</a></span><span class="op">(</span><span class="st">"Niantic River"</span><span class="op">)</span><span class="op">$</span><span class="va">huc_12</span></span></span>
 <span class="r-in"><span><span class="va">niantic_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="nsink_get_data.html">nsink_get_data</a></span><span class="op">(</span><span class="va">niantic_huc</span>, data_dir <span class="op">=</span> <span class="st">"nsink_data"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">aea</span> <span class="op">&lt;-</span> <span class="fl">5072</span></span></span>
