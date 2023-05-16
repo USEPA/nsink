@@ -81,7 +81,7 @@ nsink_prep_data <- function(huc, projection,
       huc_raster <- raster::raster(as(huc_sf, "Spatial"),
                                                        resolution = as.numeric(res),
                                                        crs = projection(huc_sf))
-
+      #browser()
       assign(paste0("rpu_",rpu[i]), list(
         streams = nsink_prep_streams(huc_sf, data_dir),
         lakes = nsink_prep_lakes(huc_sf, data_dir),
@@ -152,6 +152,7 @@ nsink_prep_data <- function(huc, projection,
 nsink_prep_streams <- function(huc_sf, data_dir) {
   nhd_streams_file <- list.files(paste0(data_dir, "nhd"), "NHDFlowline.shp",
                          recursive = TRUE, full.names = TRUE)
+  nhd_streams_file <- nhd_streams_file[!grepl(".xml", nhd_streams_file )]
   if (length(nhd_streams_file) == 1) {
     message("Preparing streams...")
     streams <- st_read(nhd_streams_file, quiet = TRUE)
@@ -197,6 +198,7 @@ nsink_prep_streams <- function(huc_sf, data_dir) {
 nsink_prep_lakes <- function(huc_sf, data_dir) {
   nhd_waterbody_file <- list.files(paste0(data_dir, "nhd"), "NHDWaterbody.shp",
                                  recursive = TRUE, full.names = TRUE)
+  nhd_waterbody_file <- nhd_waterbody_file[!grepl(".xml", nhd_waterbody_file )]
   if (length(nhd_waterbody_file) == 1) {
     message("Preparing lakes...")
 
@@ -227,7 +229,9 @@ nsink_prep_lakes <- function(huc_sf, data_dir) {
 #' @keywords  internal
 nsink_prep_fdr <- function(huc_sf, huc_raster, data_dir) {
 
-  fdr_file <- list.dirs(paste0(data_dir, "fdr/NHDPlusNE"), recursive = TRUE,
+  fdr_dir <- list.dirs(paste0(data_dir, "fdr"), full.names = TRUE,
+                       recursive = FALSE)
+  fdr_file <- list.dirs(fdr_dir, recursive = TRUE,
                         full.names = TRUE)
   fdr_file <- fdr_file[grepl("fdr", basename(fdr_file))]
 
