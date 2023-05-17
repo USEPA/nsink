@@ -233,10 +233,10 @@ nsink_prep_fdr <- function(huc_sf, huc_raster, data_dir) {
 
   if (length(fdr_file == 1)) {
     message("Preparing flow direction...")
-    fdr <- raster::raster(fdr_file)
+    fdr <- terra::rast(fdr_file)
     huc_sf <- st_transform(huc_sf, st_crs(fdr))
-    fdr <- raster::crop(fdr, as(huc_sf, "Spatial"))
-    fdr <- raster::mask(fdr, as(huc_sf, "Spatial"))
+    fdr <- terra::crop(fdr, as(huc_sf, "Spatial"))
+    fdr <- terra::mask(fdr, as(huc_sf, "Spatial"))
   } else {
     stop("The required data file does not exist.  Run nsink_get_data().")
   }
