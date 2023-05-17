@@ -269,7 +269,7 @@ nsink_prep_impervious <- function(huc_sf, huc_raster, data_dir, year) {
 
     if(length(file)>1){
 
-      file <- file[grepl(paste0("^", huc12, ".*", year, ".*\\.tif$"),file)]
+      file <- file[grepl(paste0("^", huc12, "_.*", year, ".*\\.tif$"),file)]
     }
     impervious <- raster::raster(paste0(data_dir, "imperv/", file))
     impervious <- raster::projectRaster(impervious, huc_raster)
@@ -298,7 +298,7 @@ nsink_prep_nlcd <- function(huc_sf, huc_raster, data_dir, year) {
   if (any(grepl(paste0("^", huc12, ".*", year, ".*\\.tif$"), file))){
     message("Preparing NLCD...")
     if(length(file)>1){
-      file <- file[grepl(paste0("^", huc12, ".*", year, ".*\\.tif$"),file)]
+      file <- file[grepl(paste0("^", huc12, "_.*", year, ".*\\.tif$"),file)]
     }
     nlcd <- raster::raster(paste0(data_dir, "nlcd/", file))
     nlcd <- raster::projectRaster(nlcd, huc_raster,method = "ngb")
