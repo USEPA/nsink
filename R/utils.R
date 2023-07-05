@@ -51,12 +51,12 @@ nsink_get_plus_remotepath <- function(rpu, component = c(
   if (component == "NHDPlusAttributes") {
     component <- "NHDPlusAttributes_09"
   }
-
+  # https://dmap-data-commons-ow.s3.amazonaws.com/NHDPlusV21/Data/NHDPlusNE/NHDPlusV21_NE_01_01a_FdrFac_01.7z
   url_components <- wbd_lookup[wbd_lookup$RPU == rpu, ]
   url_components <- select(url_components, .data$DrainageID, .data$VPUID, .data$RPU)
   url_components <- unique(url_components)
   baseurl <- paste0(
-    "https://edap-ow-data-commons.s3.amazonaws.com/NHDPlusV21/Data/NHDPlus",
+    "https://dmap-data-commons-ow.s3.amazonaws.com/NHDPlusV21/Data/NHDPlus",
     url_components$DrainageID
   )
   url1 <- paste0(
