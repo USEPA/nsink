@@ -53,6 +53,7 @@ Description: N-Sink is an analysis that utilizes geospatial data to estimate a
 Depends: R (>= 3.5.0)
 Imports:
   sf,
+  raster,
   httr,
   dplyr,
   fasterize,
@@ -69,7 +70,8 @@ Imports:
   future, 
   stars,
   units,
-  archive
+  archive,
+  terra
 Remotes: ropensci/FedData
 License: MIT + file LICENSE
 Encoding: UTF-8
