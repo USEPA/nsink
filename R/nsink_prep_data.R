@@ -78,7 +78,7 @@ nsink_prep_data <- function(huc, projection,
       res <- units::set_units(30, "m")
       res <- units::set_units(res, st_crs(huc_sf, parameters = TRUE)$ud_unit,
                               mode = "standard")
-      browser()
+
       huc_raster <- raster::raster(huc_sf,resolution = as.numeric(res),
                                    crs = projection(huc_sf))
       assign(paste0("rpu_",rpu[i]), list(
