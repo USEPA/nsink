@@ -51,9 +51,9 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
                tot = read.csv(paste0(input_folder, "tot.csv")),
                lakemorpho = read.csv(paste0(input_folder, "lakemorpho.csv")),
                huc = huc_sf,
-               raster_template = raster::raster(as(huc_sf, "Spatial"),
-                                                   resolution = as.numeric(res),
-                                                   crs = projection(huc_sf))
+               raster_template = raster::raster(huc_sf,
+                                                resolution = as.numeric(res),
+                                                crs = projection(huc_sf))
                )
   # The shapefile driver butchers output names, need to restore them.
   names(prep$streams) <- c("stream_comid", "fdate", "resolution", "gnis_id",

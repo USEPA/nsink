@@ -722,7 +722,7 @@ nsink_merge_removal <- function(removal_rasters) {
                              removal_rasters$off_network_removal,
                              removal_rasters$land_removal)
   }
-  removal <- raster::mask(removal, as(removal_rasters$huc, "Spatial"))
+  removal <- raster::mask(removal, removal_rasters$huc)
   removal[is.na(removal)] <- 0
   removal <- raster::focal(removal, matrix(1, nrow = 3, ncol = 3), max)
   #removal <- raster::projectRaster(removal, removal_rasters$raster_template,

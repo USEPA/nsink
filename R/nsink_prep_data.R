@@ -78,10 +78,9 @@ nsink_prep_data <- function(huc, projection,
       res <- units::set_units(30, "m")
       res <- units::set_units(res, st_crs(huc_sf, parameters = TRUE)$ud_unit,
                               mode = "standard")
-      huc_raster <- raster::raster(as(huc_sf, "Spatial"),
-                                                       resolution = as.numeric(res),
-                                                       crs = projection(huc_sf))
-      #browser()
+      browser()
+      huc_raster <- raster::raster(huc_sf,resolution = as.numeric(res),
+                                   crs = projection(huc_sf))
       assign(paste0("rpu_",rpu[i]), list(
         streams = nsink_prep_streams(huc_sf, data_dir),
         lakes = nsink_prep_lakes(huc_sf, data_dir),
@@ -110,8 +109,7 @@ nsink_prep_data <- function(huc, projection,
     huc <- rbind(get(rpus[1])$huc, get(rpus[2])$huc)
     st_agr(huc) <- "constant"
     huc <- st_cast(huc, "POLYGON")
-    huc_raster <- raster::raster(as(huc, "Spatial"),
-                                 resolution = as.numeric(res),
+    huc_raster <- raster::raster(huc,resolution = as.numeric(res),
                                  crs = projection(huc))
     list(
       streams = rbind(get(rpus[1])$streams, get(rpus[2])$streams),
@@ -239,8 +237,8 @@ nsink_prep_fdr <- function(huc_sf, huc_raster, data_dir) {
     message("Preparing flow direction...")
     fdr <- raster::raster(fdr_file)
     huc_sf <- st_transform(huc_sf, st_crs(fdr))
-    fdr <- raster::crop(fdr, as(huc_sf, "Spatial"))
-    fdr <- raster::mask(fdr, as(huc_sf, "Spatial"))
+    fdr <- raster::crop(fdr, huc_sf)
+    fdr <- raster::mask(fdr, huc_sf)
   } else {
     stop("The required data file does not exist.  Run nsink_get_data().")
   }

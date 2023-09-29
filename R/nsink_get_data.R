@@ -119,7 +119,7 @@ nsink_get_data <- function(huc, data_dir = normalizePath("nsink_data",
       message("Getting Impervious Surface ...")
 
       imp <- FedData::get_nlcd(
-        template = as(huc_12, "Spatial"), dataset = "impervious",
+        template = huc_12, dataset = "impervious",
         label = huc, extraction.dir = paste0(data_dir, "imperv"),
         force.redo = force, year = year)
 
@@ -127,7 +127,7 @@ nsink_get_data <- function(huc, data_dir = normalizePath("nsink_data",
       message("Getting NLCD ...")
 
       nlcd <- FedData::get_nlcd(
-        template = as(huc_12, "Spatial"), dataset = "landcover",
+        template = huc_12, dataset = "landcover",
         label = huc, extraction.dir = paste0(data_dir, "nlcd"),
         force.redo = force, year = year)
 

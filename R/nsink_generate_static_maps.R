@@ -116,7 +116,7 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
   }
 
   if(length(sample_pts) == 0 & cnt == 11){stop("Choose a smaller samp_dens.")}
-  fdr_check <- extract(input_data$fdr, as(sample_pts, "Spatial"))
+  fdr_check <- extract(input_data$fdr, sample_pts)
 
   if(any(is.na(fdr_check))){
     sample_pts <- sample_pts[!is.na(fdr_check)]
