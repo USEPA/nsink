@@ -43,9 +43,9 @@ nsink_generate_static_maps <- function(input_data, removal, samp_dens,
     removal, samp_dens,
     ncpu = ncpu, seed
   )
-  n_load_idx <- raster::resample(n_load_idx, input_data$raster_template,
+  n_load_idx <- terra::resample(n_load_idx, input_data$raster_template,
                                  method = "ngb")
-  n_delivery_heat <- raster::resample(n_delivery_heat, input_data$raster_template,
+  n_delivery_heat <- terra::resample(n_delivery_heat, input_data$raster_template,
                                       method = "ngb")
   n_delivery_index <- n_load_idx * n_delivery_heat
   static_maps <- lapply(list(removal_effic = removal_map, loading_idx = n_load_idx,
@@ -68,7 +68,7 @@ nsink_generate_n_loading_index <- function(input_data) {
     n_load_idx_lookup$codes,
     n_load_idx_lookup$n_loading_index
   ), ncol = 2)
-  raster::reclassify(nlcd, rcl_m)
+  terra::classify(nlcd, rcl_m)
 }
 
 #' Generate Nitrogen Removal Heatmap
@@ -196,7 +196,6 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
       huc_polygon[i,], template =
         stars::st_as_stars(input_data$raster_template)), "Raster")
 
-    #raster_huc <- raster::mask(raster::crop(raster_huc, huc_polygon[i,]), huc_polygon[i,])
 
     #subset sample_pts_removal
     # THis might be my problem
@@ -214,7 +213,7 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
                                 set = list(idp = 0.5))
 
       output <- capture.output(assign(paste0("idw", i),
-             raster::mask(raster::interpolate(raster_huc, interpolated_pts,
+             terra::mask(terra::interpolate(raster_huc, interpolated_pts,
                                  ext = huc_polygon[i,]), huc_polygon[i,])))
     }
   }
@@ -225,15 +224,15 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
     stop("Too few sample points.  Decrease the samp_dens value.")
   }
   if(length(idw_list) > 1){
-    idw_n_removal_heat_map <- do.call(raster::merge, idw_list)
+    idw_n_removal_heat_map <- do.call(terra::merge, idw_list)
   } else {
     idw_n_removal_heat_map <- idw_list[[1]]
   }
 
-  idw_n_removal_heat_map_agg <- raster::aggregate(idw_n_removal_heat_map,
+  idw_n_removal_heat_map_agg <- terra::aggregate(idw_n_removal_heat_map,
                                                   fun = max, fact = 3)
-  idw_n_removal_heat_map_agg <- raster::mask(
-    raster::crop(idw_n_removal_heat_map_agg, input_data$huc),input_data$huc)
+  idw_n_removal_heat_map_agg <- terra::mask(
+    terra::crop(idw_n_removal_heat_map_agg, input_data$huc),input_data$huc)
 
   idw_n_removal_heat_map_agg
 

@@ -120,7 +120,7 @@ nsink_calc_removal <- function(input_data,off_network_lakes = NULL,
       raster_template = removal$raster_template,
       huc = input_data$huc
     ))
-    land_off_network_removal_r <- raster::merge(removal$off_network_removal_r,
+    land_off_network_removal_r <- terra::merge(removal$off_network_removal_r,
                                                 removal$land_removal_r)
 
     # Very ugly way to handle off network types that may or may not exist.
@@ -128,7 +128,7 @@ nsink_calc_removal <- function(input_data,off_network_lakes = NULL,
     streamsl <- any(class(removal$off_network_streams_v) == "sf")
     canal_ditchl <- any(class(removal$off_network_canal_ditch_v) == "sf")
     if(lakesl & streamsl & canal_ditchl){
-      land_off_network_removal_type_r <- raster::merge(
+      land_off_network_removal_type_r <- terra::merge(
         fasterize::fasterize(removal$off_network_lakes_v,
                              input_data$raster_template, field = "segment_type",
                              background = NA, fun = "max"),
@@ -140,7 +140,7 @@ nsink_calc_removal <- function(input_data,off_network_lakes = NULL,
                              input_data$raster_template, field = "segment_type",
                              background = NA, fun = "max"))
       } else if(lakesl & streamsl){
-        land_off_network_removal_type_r <- raster::merge(
+        land_off_network_removal_type_r <- terra::merge(
           fasterize::fasterize(removal$off_network_lakes_v,
                                input_data$raster_template, field = "segment_type",
                                background = NA, fun = "max"),
@@ -150,7 +150,7 @@ nsink_calc_removal <- function(input_data,off_network_lakes = NULL,
                                input_data$raster_template, field = "segment_type",
                                background = NA, fun = "max"))
       } else if(lakesl & canal_ditchl){
-        land_off_network_removal_type_r <- raster::merge(
+        land_off_network_removal_type_r <- terra::merge(
           fasterize::fasterize(removal$off_network_lakes_v,
                                input_data$raster_template, field = "segment_type",
                                background = NA, fun = "max"),
@@ -160,7 +160,7 @@ nsink_calc_removal <- function(input_data,off_network_lakes = NULL,
                                input_data$raster_template, field = "segment_type",
                                background = NA, fun = "max"))
       } else if(streamsl & canal_ditchl){
-        land_off_network_removal_type_r <- raster::merge(
+        land_off_network_removal_type_r <- terra::merge(
           as(st_rasterize(removal$off_network_streams_v["segment_type"],
                           st_as_stars(input_data$raster_template)), "Raster"),
           as(st_rasterize(removal$off_network_canal_ditch_v["segment_type"],
@@ -169,7 +169,7 @@ nsink_calc_removal <- function(input_data,off_network_lakes = NULL,
                                input_data$raster_template, field = "segment_type",
                                background = NA, fun = "max"))
       } else if(lakesl){
-        land_off_network_removal_type_r <- raster::merge(
+        land_off_network_removal_type_r <- terra::merge(
           fasterize::fasterize(removal$off_network_lakes_v,
                                input_data$raster_template, field = "segment_type",
                                background = NA, fun = "max"),
@@ -177,14 +177,14 @@ nsink_calc_removal <- function(input_data,off_network_lakes = NULL,
                                input_data$raster_template, field = "segment_type",
                                background = NA, fun = "max"))
       } else if(streamsl){
-        land_off_network_removal_type_r <- raster::merge(
+        land_off_network_removal_type_r <- terra::merge(
           as(st_rasterize(removal$off_network_streams_v["segment_type"],
                           st_as_stars(input_data$raster_template)), "Raster"),
           fasterize::fasterize(removal$land_removal_v,
                                input_data$raster_template, field = "segment_type",
                                background = NA, fun = "max"))
       } else if(canal_ditchl){
-        land_off_network_removal_type_r <- raster::merge(
+        land_off_network_removal_type_r <- terra::merge(
           as(st_rasterize(removal$off_network_canal_ditch_v["segment_type"],
                           st_as_stars(input_data$raster_template)), "Raster"),
           fasterize::fasterize(removal$land_removal_v,
@@ -203,7 +203,7 @@ nsink_calc_removal <- function(input_data,off_network_lakes = NULL,
       st_as_stars(land_off_network_removal_type_r),
       as_points = FALSE, merge = TRUE)
     land_off_network_removal_type_v <- st_make_valid(land_off_network_removal_type_v)
-    out_obj <- list(raster_method = raster::stack(merged_removal, merged_type),
+    out_obj <- list(raster_method = c(merged_removal, merged_type),
                 land_off_network_removal = land_off_network_removal_v,
                 land_off_network_removal_type = land_off_network_removal_type_v,
                 network_removal = rbind(removal$stream_removal_v,
@@ -429,7 +429,7 @@ nsink_calc_off_network_removal <- function(input_data, off_network_lakes,
   }
 
   # Create raster
-  off_network_removal_r <- raster::merge(off_network_lakes_r,
+  off_network_removal_r <- terra::merge(off_network_lakes_r,
                                          off_network_streams_r,
                                          off_network_canal_ditch_r)
 
@@ -705,29 +705,27 @@ nsink_merge_removal <- function(removal_rasters) {
   if(is.null(removal_rasters$lake_removal)){
     land_removal <- NULL
   } else {
-    lake_removal <- raster::reclassify(removal_rasters$lake_removal,
+    lake_removal <- terra::classify(removal_rasters$lake_removal,
                                cbind(-Inf, 0, NA), right=FALSE)
   }
-  land_removal <- raster::reclassify(removal_rasters$land_removal,
+  land_removal <- terra::classify(removal_rasters$land_removal,
                              cbind(-Inf, 0, NA), right=FALSE)
 
-  off_network_removal <- raster::reclassify(removal_rasters$off_network_removal,
+  off_network_removal <- terra::classify(removal_rasters$off_network_removal,
                                     cbind(-Inf, 0, NA), right=FALSE)
 
   if(is.null(removal_rasters$lake_removal)){
-    removal <- raster::merge(removal_rasters$off_network_removal,
+    removal <- terra::merge(removal_rasters$off_network_removal,
                              removal_rasters$land_removal)
   } else {
-    removal <- raster::merge(removal_rasters$lake_removal,
+    removal <- terra::merge(removal_rasters$lake_removal,
                              removal_rasters$off_network_removal,
                              removal_rasters$land_removal)
   }
-  removal <- raster::mask(removal, removal_rasters$huc)
+  removal <- terra::mask(removal, removal_rasters$huc)
   removal[is.na(removal)] <- 0
-  removal <- raster::focal(removal, matrix(1, nrow = 3, ncol = 3), max)
-  #removal <- raster::projectRaster(removal, removal_rasters$raster_template,
-  #                                 method = "ngb")
-  removal <- raster::merge(removal_rasters$stream_removal, removal)
+  removal <- terra::focal(removal, matrix(1, nrow = 3, ncol = 3), max)
+  removal <- terra::merge(removal_rasters$stream_removal, removal)
   removal
 }
 
@@ -744,20 +742,20 @@ nsink_calc_removal_type <- function(removal_rasters) {
     if(!is.null(removal_rast)){
       type <- match.arg(type)
       if (type == "hydric") {
-        val <- raster::getValues(removal_rast)
+        val <- terra::values(removal_rast)
         val[val > 0] <- 1
         val[val == 0] <- NA
       } else if (type == "stream") {
-        val <- raster::getValues(removal_rast)
+        val <- terra::values(removal_rast)
         val[!is.na(val)] <- 2
       } else if (type == "lake") {
-        val <- raster::getValues(removal_rast)
+        val <- terra::values(removal_rast)
         val[!is.na(val)] <- 3
       } else if (type == "off_network") {
-        val <- raster::getValues(removal_rast)
+        val <- terra::values(removal_rast)
         val[!is.na(val)] <- 4
       }
-      raster::setValues(removal_rast, val)
+      terra::set.values(removal_rast, val)
     } else {
       NULL
     }
@@ -769,15 +767,13 @@ nsink_calc_removal_type <- function(removal_rasters) {
   off_network_type <- type_it(removal_rasters$off_network_removal,
                               "off_network")
   if(!is.null(lake_type)){
-    types <- raster::merge(lake_type, off_network_type, hydric_type)
+    types <- terra::merge(lake_type, off_network_type, hydric_type)
   } else {
-    types <- raster::merge(off_network_type, hydric_type)
+    types <- terra::merge(off_network_type, hydric_type)
   }
-  types <- raster::mask(types, removal_rasters$huc)
+  types <- terra::mask(types, removal_rasters$huc)
   types[is.na(types)] <- 0
-  types <- raster::focal(types, matrix(1, nrow = 3, ncol = 3), max)
-  #types <- raster::projectRaster(types, removal_rasters$raster_template,
-  #                               method = "ngb")
-  types <- raster::merge(stream_type, types)
+  types <- terra::focal(types, matrix(1, nrow = 3, ncol = 3), max)
+  types <- terra::merge(stream_type, types)
   types
 }

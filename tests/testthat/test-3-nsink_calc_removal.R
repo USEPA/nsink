@@ -19,7 +19,7 @@ test_that("removal object has correct classes", {
 })
 
 test_that("removal values are all non-negative", {
-  expect_gte(min(raster::values(niantic_removal$raster_method), na.rm = TRUE), 0)
+  expect_gte(min(terra::values(niantic_removal$raster_method), na.rm = TRUE), 0)
   expect_gte(min(niantic_removal$land_off_network_removal$layer, na.rm = TRUE), 0)
   expect_gte(min(niantic_removal$network_removal$n_removal, na.rm = TRUE), 0)
 })

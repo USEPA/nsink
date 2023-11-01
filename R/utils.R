@@ -198,4 +198,39 @@ nsink_get_closest_lt <- function(v1, v2){
   v2_idx
 }
 
-
+#' raster::flowPath copied here to work with terra
+#'
+#' @keywords internal
+flowPath <- function (x, p, ...)
+{
+  r <- terra::rast(x)
+  if (length(p) > 1) {
+    p <- terra::cellFromXY(r, p[1:2])
+  }
+  cell <- p
+  row <- terra::rowFromCell(r, cell)
+  col <- terra::colFromCell(r, cell)
+  nr <- nrow(r)
+  nc <- ncol(r)
+  path <- NULL
+  while (!is.na(x[cell])) {
+    path <- c(path, cell)
+    fd <- x[cell]
+    row <- if (fd %in% c(32, 64, 128))
+      row - 1
+    else if (fd %in% c(8, 4, 2))
+      row + 1
+    else row
+    col <- if (fd %in% c(32, 16, 8))
+      col - 1
+    else if (fd %in% c(128, 1, 2))
+      col + 1
+    else col
+    cell <- terra::cellFromRowCol(r, row, col)
+    if (is.na(x[cell]))
+      break
+    if (cell %in% path)
+      break
+  }
+  return(path)
+}

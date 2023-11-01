@@ -51,7 +51,7 @@ nsink_plot_delivery <- function(delivery_idx, breaks = c(20, 40, 60, 80, 100),
                                 colors = c("#FFBEBE", "#F57A7A","#A80405",
                                            "#652600")){
   suppressWarnings({
-  raster::plot(delivery_idx, breaks = breaks, col = colors,
+  terra::plot(delivery_idx, breaks = breaks, col = colors,
                main = "Nitrogen Delivery Index")
   })
 }
@@ -74,7 +74,7 @@ nsink_plot_delivery <- function(delivery_idx, breaks = c(20, 40, 60, 80, 100),
 nsink_plot_removal <- function(removal_effic, breaks = c(0.2, 0.4, 0.6, 0.8),
                                colors = c("#D3FFBE", "#70A800", "#267300")){
   suppressWarnings({
-  raster::plot(removal_effic, breaks = breaks, col = colors,
+    terra::plot(removal_effic, breaks = breaks, col = colors,
                main = "Nitrogen Removal Efficiency")
   })
 }
@@ -101,7 +101,7 @@ nsink_plot_transport <- function(transport_idx, breaks = c(0, 10, 20, 30, 40, 50
                                             "#F9C159", "#F99844", "#F56A2E",
                                             "#EF2820")){
   suppressWarnings({
-  raster::plot(transport_idx, breaks = breaks, col = colors,
+    terra::plot(transport_idx, breaks = breaks, col = colors,
                main = "Nitrogen Transport Index")
   })
 }

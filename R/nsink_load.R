@@ -51,9 +51,9 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
                tot = read.csv(paste0(input_folder, "tot.csv")),
                lakemorpho = read.csv(paste0(input_folder, "lakemorpho.csv")),
                huc = huc_sf,
-               raster_template = raster::raster(huc_sf,
+               raster_template = terra::rast(huc_sf,
                                                 resolution = as.numeric(res),
-                                                crs = projection(huc_sf))
+                                                crs = st_crs(huc_sf))
                )
   # The shapefile driver butchers output names, need to restore them.
   names(prep$streams) <- c("stream_comid", "fdate", "resolution", "gnis_id",
@@ -90,11 +90,11 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
                                             st_crs(prj) !=
                                             st_crs(x))))
     my_raster_new_prj <- which(unlist(lapply(my_list[my_raster],
-                                             function(x) projection(prj) != projection(x))))
+                                             function(x) st_crs(prj) != st_crs(x))))
     fix_sf <- my_sf[my_sf_new_proj]
     fix_raster <- my_raster[my_raster_new_prj]
     for(i in fix_raster){
-      my_list[[i]] <- raster::projectRaster(my_list[[i]], crs = projection(prj))
+      my_list[[i]] <- terra::project(my_list[[i]], crs = st_crs(prj))
     }
     for(i in fix_sf){
       my_list[[i]] <- st_transform(my_list[[i]], crs = st_crs(prj))
@@ -109,21 +109,21 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
     prep <- list(streams = st_transform(prep[["streams"]], crs = projection),
                  lakes = st_transform(prep[["lakes"]], crs = projection),
                  fdr = prep[["fdr"]],
-                 impervious = raster::projectRaster(prep[["impervious"]],crs =
-                                                      projection(projection_template)),
-                 nlcd = raster::projectRaster(prep[["nlcd"]], crs =
-                                                projection(projection_template)),
+                 impervious = terra::project(prep[["impervious"]],crs =
+                                                      st_crs(projection_template)),
+                 nlcd = terra::project(prep[["nlcd"]], crs =
+                                                st_crs(projection_template)),
                  ssurgo = st_transform(prep[["ssurgo"]], crs = projection),
                  q = prep[["q"]],
                  tot = prep[["tot"]],
                  lakemorpho = prep[["lakemorpho"]],
                  huc = st_transform(prep[["huc"]], crs = projection),
-                 raster_template = raster::projectRaster(prep[["raster_template"]],
+                 raster_template = terra::project(prep[["raster_template"]],
                                                          crs =
-                                                           projection(projection_template)))
+                                                           st_crs(projection_template)))
     removal <- list(raster_method =
-                      raster::projectRaster(removal[["raster_method"]],
-                                            crs = projection(projection_template)),
+                      terra::project(removal[["raster_method"]],
+                                            crs = st_crs(projection_template)),
                     land_off_network_removal =
                       st_transform(removal[["land_off_network_removal"]],
                                    crs = projection),
@@ -133,17 +133,17 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
                     network_removal = st_transform(removal[["network_removal"]],
                                                    crs = projection))
     static <- list(removal_effic =
-                     raster::projectRaster(static[["removal_effic"]],
-                                           crs = projection(projection_template)),
+                     terra::project(static[["removal_effic"]],
+                                           crs = st_crs(projection_template)),
                    loading_idx =
-                     raster::projectRaster(static[["loading_idx"]],
-                                           crs = projection(projection_template)),
+                     terra::project(static[["loading_idx"]],
+                                           crs = st_crs(projection_template)),
                    transport_idx =
-                     raster::projectRaster(static[["transport_idx"]],
-                                           crs = projection(projection_template)),
+                     terra::project(static[["transport_idx"]],
+                                           crs = st_crs(projection_template)),
                    delivery_idx =
-                     raster::projectRaster(static[["delivery_idx"]],
-                                           crs = projection(projection_template)))
+                     terra::project(static[["delivery_idx"]],
+                                           crs = st_crs(projection_template)))
   }
 
   assign(paste0(base_name,"data"), prep, envir = parent.frame())

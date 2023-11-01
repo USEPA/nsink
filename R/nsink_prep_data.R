@@ -79,8 +79,8 @@ nsink_prep_data <- function(huc, projection,
       res <- units::set_units(res, st_crs(huc_sf, parameters = TRUE)$ud_unit,
                               mode = "standard")
 
-      huc_raster <- raster::raster(huc_sf,resolution = as.numeric(res),
-                                   crs = projection(huc_sf))
+      huc_raster <- terra::rast(huc_sf,resolution = as.numeric(res),
+                                   crs = st_crs(huc_sf))
       assign(paste0("rpu_",rpu[i]), list(
         streams = nsink_prep_streams(huc_sf, data_dir),
         lakes = nsink_prep_lakes(huc_sf, data_dir),
@@ -109,23 +109,23 @@ nsink_prep_data <- function(huc, projection,
     huc <- rbind(get(rpus[1])$huc, get(rpus[2])$huc)
     st_agr(huc) <- "constant"
     huc <- st_cast(huc, "POLYGON")
-    huc_raster <- raster::raster(huc,resolution = as.numeric(res),
-                                 crs = projection(huc))
+    huc_raster <- terra::rast(huc,resolution = as.numeric(res),
+                                 crs = sf::st_crs(huc))
     list(
       streams = rbind(get(rpus[1])$streams, get(rpus[2])$streams),
       lakes = rbind(get(rpus[1])$lakes, get(rpus[2])$lakes),
-      fdr = suppressWarnings(raster::mosaic(
-        raster::projectRaster(get(rpus[1])$fdr, huc_raster, method = "ngb"),
-        raster::projectRaster(get(rpus[2])$fdr, huc_raster, method = "ngb"),
+      fdr = suppressWarnings(terra::mosaic(
+        terra::project(get(rpus[1])$fdr, huc_raster, method = "ngb"),
+        terra::project(get(rpus[2])$fdr, huc_raster, method = "ngb"),
         fun = max)),
-      impervious = suppressWarnings(raster::mosaic(
-        raster::projectRaster(get(rpus[1])$impervious, huc_raster,
+      impervious = suppressWarnings(terra::mosaic(
+        terra::project(get(rpus[1])$impervious, huc_raster,
                               method = "ngb"),
-        raster::projectRaster(get(rpus[2])$impervious, huc_raster,
+        terra::project(get(rpus[2])$impervious, huc_raster,
                               method = "ngb"), fun = max)),
-      nlcd = suppressWarnings(raster::mosaic(
-        raster::projectRaster(get(rpus[1])$nlcd, huc_raster, method = "ngb"),
-        raster::projectRaster(get(rpus[2])$nlcd, huc_raster, method = "ngb"),
+      nlcd = suppressWarnings(terra::mosaic(
+        terra::project(get(rpus[1])$nlcd, huc_raster, method = "ngb"),
+        terra::project(get(rpus[2])$nlcd, huc_raster, method = "ngb"),
         fun = max)),
       ssurgo = rbind(get(rpus[1])$ssurgo, get(rpus[2])$ssurgo),
       q = rbind(get(rpus[1])$q, get(rpus[2])$q),
@@ -235,10 +235,10 @@ nsink_prep_fdr <- function(huc_sf, huc_raster, data_dir) {
 
   if (length(fdr_file == 1)) {
     message("Preparing flow direction...")
-    fdr <- raster::raster(fdr_file)
+    fdr <- terra::rast(fdr_file)
     huc_sf <- st_transform(huc_sf, st_crs(fdr))
-    fdr <- raster::crop(fdr, huc_sf)
-    fdr <- raster::mask(fdr, huc_sf)
+    fdr <- terra::crop(fdr, huc_sf)
+    fdr <- terra::mask(fdr, huc_sf)
   } else {
     stop("The required data file does not exist.  Run nsink_get_data().")
   }
@@ -269,8 +269,8 @@ nsink_prep_impervious <- function(huc_sf, huc_raster, data_dir, year) {
 
       file <- file[grepl(paste0("^", huc12, "_.*", year, ".*\\.tif$"),file)]
     }
-    impervious <- raster::raster(paste0(data_dir, "imperv/", file))
-    impervious <- raster::projectRaster(impervious, huc_raster)
+    impervious <- terra::rast(paste0(data_dir, "imperv/", file))
+    impervious <- terra::project(impervious, huc_raster)
   } else {
     stop("The required data file does not exist.  Run nsink_get_data().")
   }
@@ -298,8 +298,8 @@ nsink_prep_nlcd <- function(huc_sf, huc_raster, data_dir, year) {
     if(length(file)>1){
       file <- file[grepl(paste0("^", huc12, "_.*", year, ".*\\.tif$"),file)]
     }
-    nlcd <- raster::raster(paste0(data_dir, "nlcd/", file))
-    nlcd <- raster::projectRaster(nlcd, huc_raster,method = "ngb")
+    nlcd <- terra::rast(paste0(data_dir, "nlcd/", file))
+    nlcd <- terra::project(nlcd, huc_raster,method = "ngb")
   } else {
     stop("The required data file does not exist.  Run nsink_get_data().")
   }
