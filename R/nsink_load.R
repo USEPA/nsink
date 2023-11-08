@@ -53,7 +53,7 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
                huc = huc_sf,
                raster_template = terra::rast(huc_sf,
                                                 resolution = as.numeric(res),
-                                                crs = st_crs(huc_sf))
+                                                crs = st_crs(huc_sf)$wkt)
                )
   # The shapefile driver butchers output names, need to restore them.
   names(prep$streams) <- c("stream_comid", "fdate", "resolution", "gnis_id",
@@ -94,10 +94,10 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
     fix_sf <- my_sf[my_sf_new_proj]
     fix_raster <- my_raster[my_raster_new_prj]
     for(i in fix_raster){
-      my_list[[i]] <- terra::project(my_list[[i]], crs = st_crs(prj))
+      my_list[[i]] <- terra::project(my_list[[i]], crs = st_crs(prj)$wkt)
     }
     for(i in fix_sf){
-      my_list[[i]] <- st_transform(my_list[[i]], crs = st_crs(prj))
+      my_list[[i]] <- st_transform(my_list[[i]], crs = st_crs(prj)$wkt)
     }
     my_list
   }
@@ -123,7 +123,7 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
                                                            st_crs(projection_template)))
     removal <- list(raster_method =
                       terra::project(removal[["raster_method"]],
-                                            crs = st_crs(projection_template)),
+                                            crs = st_crs(projection_template)$wkt),
                     land_off_network_removal =
                       st_transform(removal[["land_off_network_removal"]],
                                    crs = projection),
@@ -134,16 +134,16 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
                                                    crs = projection))
     static <- list(removal_effic =
                      terra::project(static[["removal_effic"]],
-                                           crs = st_crs(projection_template)),
+                                           crs = st_crs(projection_template)$wkt),
                    loading_idx =
                      terra::project(static[["loading_idx"]],
-                                           crs = st_crs(projection_template)),
+                                           crs = st_crs(projection_template)$wkt),
                    transport_idx =
                      terra::project(static[["transport_idx"]],
-                                           crs = st_crs(projection_template)),
+                                           crs = st_crs(projection_template)$wkt),
                    delivery_idx =
                      terra::project(static[["delivery_idx"]],
-                                           crs = st_crs(projection_template)))
+                                           crs = st_crs(projection_template)$wkt))
   }
 
   assign(paste0(base_name,"data"), prep, envir = parent.frame())

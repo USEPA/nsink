@@ -79,8 +79,7 @@ nsink_prep_data <- function(huc, projection,
       res <- units::set_units(res, st_crs(huc_sf, parameters = TRUE)$ud_unit,
                               mode = "standard")
 
-      huc_raster <- terra::rast(huc_sf,resolution = as.numeric(res),
-                                   crs = st_crs(huc_sf))
+      huc_raster <- terra::rast(huc_sf,resolution = as.numeric(res), crs = st_crs(huc_sf)$wkt)
       assign(paste0("rpu_",rpu[i]), list(
         streams = nsink_prep_streams(huc_sf, data_dir),
         lakes = nsink_prep_lakes(huc_sf, data_dir),
@@ -115,17 +114,17 @@ nsink_prep_data <- function(huc, projection,
       streams = rbind(get(rpus[1])$streams, get(rpus[2])$streams),
       lakes = rbind(get(rpus[1])$lakes, get(rpus[2])$lakes),
       fdr = suppressWarnings(terra::mosaic(
-        terra::project(get(rpus[1])$fdr, huc_raster, method = "ngb"),
-        terra::project(get(rpus[2])$fdr, huc_raster, method = "ngb"),
+        terra::project(get(rpus[1])$fdr, huc_raster, method = "near"),
+        terra::project(get(rpus[2])$fdr, huc_raster, method = "near"),
         fun = max)),
       impervious = suppressWarnings(terra::mosaic(
         terra::project(get(rpus[1])$impervious, huc_raster,
-                              method = "ngb"),
+                              method = "near"),
         terra::project(get(rpus[2])$impervious, huc_raster,
-                              method = "ngb"), fun = max)),
+                              method = "near"), fun = max)),
       nlcd = suppressWarnings(terra::mosaic(
-        terra::project(get(rpus[1])$nlcd, huc_raster, method = "ngb"),
-        terra::project(get(rpus[2])$nlcd, huc_raster, method = "ngb"),
+        terra::project(get(rpus[1])$nlcd, huc_raster, method = "near"),
+        terra::project(get(rpus[2])$nlcd, huc_raster, method = "near"),
         fun = max)),
       ssurgo = rbind(get(rpus[1])$ssurgo, get(rpus[2])$ssurgo),
       q = rbind(get(rpus[1])$q, get(rpus[2])$q),
@@ -269,6 +268,7 @@ nsink_prep_impervious <- function(huc_sf, huc_raster, data_dir, year) {
 
       file <- file[grepl(paste0("^", huc12, "_.*", year, ".*\\.tif$"),file)]
     }
+
     impervious <- terra::rast(paste0(data_dir, "imperv/", file))
     impervious <- terra::project(impervious, huc_raster)
   } else {
@@ -299,7 +299,7 @@ nsink_prep_nlcd <- function(huc_sf, huc_raster, data_dir, year) {
       file <- file[grepl(paste0("^", huc12, "_.*", year, ".*\\.tif$"),file)]
     }
     nlcd <- terra::rast(paste0(data_dir, "nlcd/", file))
-    nlcd <- terra::project(nlcd, huc_raster,method = "ngb")
+    nlcd <- terra::project(nlcd, huc_raster,method = "near")
   } else {
     stop("The required data file does not exist.  Run nsink_get_data().")
   }

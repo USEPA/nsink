@@ -35,7 +35,7 @@ nsink_generate_flowpath <- function(starting_location, input_data){
 
   starting_location <- st_transform(starting_location, st_crs(input_data$fdr))
   # flowPath code borrowed directly from raster, modified to work with terra
-  fp <- flowPath(input_data$fdr, st_coordinates(starting_location))
+  fp <- nsink:::flowPath(input_data$fdr, st_coordinates(starting_location))
   fp <- terra::xyFromCell(input_data$fdr, fp)
   # Fixes cases with a single point flowpath: rare but annoying
   if(nrow(fp) == 1){

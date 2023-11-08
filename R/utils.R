@@ -203,9 +203,10 @@ nsink_get_closest_lt <- function(v1, v2){
 #' @keywords internal
 flowPath <- function (x, p, ...)
 {
+
   r <- terra::rast(x)
   if (length(p) > 1) {
-    p <- terra::cellFromXY(r, p[1:2])
+    p <- terra::cellFromXY(r, p)
   }
   cell <- p
   row <- terra::rowFromCell(r, cell)
@@ -215,7 +216,8 @@ flowPath <- function (x, p, ...)
   path <- NULL
   while (!is.na(x[cell])) {
     path <- c(path, cell)
-    fd <- x[cell]
+    fd <- x[cell][,1]
+    fd <- as.numeric(levels(fd)[fd])
     row <- if (fd %in% c(32, 64, 128))
       row - 1
     else if (fd %in% c(8, 4, 2))

@@ -1,7 +1,8 @@
 library(nsink)
 load("inst/testdata.rda")
 huc <- nsink_get_huc_id("niantic")$huc_12
-niantic_data <- nsink_prep_data(huc, aea, "bug_data")
+aea <- 5072
+niantic_data <- nsink_prep_data(huc, aea, "tests/testthat/nsink_test_data/")
 niantic_removal <- nsink_calc_removal(niantic_data)
 niantic_static <- nsink_generate_static_maps(niantic_data, niantic_removal,
                                              samp_dens = 3000)

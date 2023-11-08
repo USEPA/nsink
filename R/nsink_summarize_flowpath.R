@@ -37,11 +37,12 @@
 nsink_summarize_flowpath <- function(flowpath, removal) {
   # Off Network based removal in flowpath ends
   type_poly <- st_cast(removal$land_off_network_removal_type, "POLYGON")
-  type_poly <- mutate(type_poly, type_id = paste0("type_", seq_along(.data$layer)))
+
+  type_poly <- mutate(type_poly, type_id = paste0("type_", seq_along(.data$segment_type)))
   st_agr(type_poly) <- "constant"
   removal_poly <- st_cast(removal$land_off_network_removal, "POLYGON")
   removal_poly <- mutate(removal_poly,
-                         remove_id = paste0("remove_", seq_along(.data$layer)))
+                         remove_id = paste0("remove_", seq_along(.data$n_removal)))
   st_agr(removal_poly) <- "constant"
 
   # Change from 2021-04-12
@@ -186,8 +187,8 @@ nsink_summarize_flowpath <- function(flowpath, removal) {
 
     land_off_network_removal_df <- data.frame(
       stream_comid = 0, lake_comid = 0,
-      n_removal = land_off_network_removal$layer,
-      segment_type = land_off_network_removal$layer.1,
+      n_removal = land_off_network_removal$n_removal,
+      segment_type = land_off_network_removal$segment_type,
       remove_id = land_off_network_removal$remove_id
     )
 
