@@ -106,20 +106,27 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
 
   initial_plan <- future::plan()
   set.seed(seed)
-  num_pts <- as.numeric(round(st_area(input_data$huc) / (samp_dens * samp_dens)))
-  num_pts <- sum(num_pts)
-  if(num_pts <= 4){stop("Choose a smaller samp_dens.")}
 
-  # While loop to make sure small number of points always pass something.
-  sample_pts <- vector("numeric")
-  cnt <- 1
-  while(length(sample_pts) == 0 & cnt < 11){
-    sample_pts <- st_sample(input_data$huc, num_pts, type = "regular")
-    cnt <- cnt + 1
-  }
 
-  if(length(sample_pts) == 0 & cnt == 11){stop("Choose a smaller samp_dens.")}
-  fdr_check <- terra::extract(input_data$fdr, as(sample_pts, "SpatVector"))
+    num_pts <- as.numeric(round(sum(st_area(input_data$huc)) / (samp_dens * samp_dens)))
+    num_pts <- sum(num_pts)
+    if(num_pts <= 4){stop("Choose a smaller samp_dens.")}
+
+    # While loop to make sure small number of points always pass something.
+    sample_pts <- vector("numeric")
+    cnt <- 1
+    while(length(sample_pts) == 0 & cnt < 11){
+      # on lower_west samples are outside of polygon...
+      sample_pts <- st_sample(x = input_data$huc, size = num_pts, type = "regular")
+      cnt <- cnt + 1
+      seed <- seed + 1
+      set.seed(seed)
+    }
+
+    if(length(sample_pts) == 0 & cnt == 11){stop("Choose a smaller samp_dens.")}
+
+  fdr_check <- suppressWarnings(terra::extract(input_data$fdr,
+                                               as(sample_pts, "SpatVector")))
 
   if(any(is.na(fdr_check))){
     sample_pts <- sample_pts[!is.na(fdr_check)]
@@ -130,8 +137,8 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
   # for more points, it is done in parallel
   message(paste0(" Running ", length(sample_pts), " sampled flowpaths..."))
 
-  if(length(sample_pts) < 50){
-
+  #if(length(sample_pts) < 50){
+  if(TRUE){
     pb <- txtProgressBar(max = length(sample_pts), style = 3)
     xdf <- data.frame(fp_removal = vector("numeric", length(sample_pts)))
 
@@ -160,6 +167,14 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
 
   } else {
     fp_removal <- function(pt, input_data, removal) {
+      #Make Terra
+
+      input_data$fdr <- terra::unwrap(input_data$fdr)
+      input_data$impervious <- terra::unwrap(input_data$impervious)
+      input_data$nlcd <- terra::unwrap(input_data$nlcd)
+      input_data$raster_template <- terra::unwrap(input_data$raster_template)
+      removal$raster_method$removal <- terra::unwrap(removal$raster_method$removal)
+      removal$raster_method$type <- terra::unwrap(removal$raster_method$type)
       pt <- st_sf(st_sfc(pt, crs = st_crs(input_data$huc)))
       fp <- nsink_generate_flowpath(pt, input_data)
       if(any(st_within(fp$flowpath_ends, input_data$huc, sparse = FALSE))){
@@ -169,6 +184,14 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
         return(data.frame(fp_removal = NA))
       }
     }
+
+    # Prepping terra for parallel
+    input_data$fdr <- terra::wrap(input_data$fdr)
+    input_data$impervious <- terra::wrap(input_data$impervious)
+    input_data$nlcd <- terra::wrap(input_data$nlcd)
+    input_data$raster_template <- terra::wrap(input_data$raster_template)
+    removal$raster_method$removal <- terra::wrap(removal$raster_method$removal)
+    removal$raster_method$type <- terra::wrap(removal$raster_method$type)
 
     future::plan(future::multisession, workers = ncpu)
 
@@ -180,6 +203,7 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
             x, input_data,
             removal
           )
+
         }, .progress = TRUE, .options = furrr_options(seed = TRUE)))
     )
 
@@ -196,25 +220,23 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
 
   for(i in 1:nrow(huc_polygon)){
 
-    num_pts <- round(units::set_units(st_area(huc_polygon[i,]), "m^2") / (30 * 30))
+    num_pts <- round(as.numeric(units::set_units(st_area(huc_polygon[i,]), "m^2")) / (30 * 30))
     interp_points <- st_sample(huc_polygon[i,], as.numeric(num_pts),
                                type = "regular")
 
     raster_huc <- terra::rasterize(huc_polygon[i,], input_data$raster_template)
 
-
-    #subset sample_pts_removal
-    # THis might be my problem
     sample_pts_removal_huc_poly <- sample_pts_removal[
       st_intersects(sample_pts_removal,huc_polygon[i,], sparse = FALSE),]
-
-    interp_points <- st_transform(interp_points, st_crs(raster_huc))
-    sample_pts_removal_huc_poly <- st_transform(sample_pts_removal_huc_poly,
-                                                st_crs(raster_huc))
-    xy <- st_coordinates(sample_pts_removal_huc_poly)
-    xy_remove <- mutate(data.frame(xy),
-                        fp_removal = sample_pts_removal_huc_poly$fp_removal)
-    xy_remove <- select(xy_remove, x = X, y = Y, fp_removal)
+    if(length(sample_pts_removal_huc_poly$fp_removal)>0){
+      interp_points <- st_transform(interp_points, st_crs(raster_huc))
+      sample_pts_removal_huc_poly <- st_transform(sample_pts_removal_huc_poly,
+                                                  st_crs(raster_huc))
+      xy <- st_coordinates(sample_pts_removal_huc_poly)
+      xy_remove <- mutate(data.frame(xy),
+                          fp_removal = sample_pts_removal_huc_poly$fp_removal)
+      xy_remove <- select(xy_remove, x = X, y = Y, fp_removal)
+    }
     if(nrow(sample_pts_removal_huc_poly)>= 2){
       interpolated_pts <- gstat::gstat(formula = fp_removal ~ 1,
                                 data = xy_remove,
@@ -222,12 +244,13 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
                                 nmin = 2, nmax = 10,
                                 set = list(idp = 0.5))
 
+
       # From terra::interpolate examples
-      interpolate_gstat <- function(model, x, crs, ...) {
-        v <- st_as_sf(x, coords=c("x", "y"), crs=crs)
-        p <- predict(model, v, ...)
-        as.data.frame(p)[,1:2]
-      }
+      #interpolate_gstat <- function(model, x, crs, ...) {
+      #  v <- st_as_sf(x, coords=c("x", "y"), crs=crs)
+      #  p <- predict(model, v, ...)
+      #  as.data.frame(p)[,1:2]
+      #}
 
       output <- assign(paste0("idw", i),
                     terra::mask(terra::interpolate(raster_huc, interpolated_pts,
