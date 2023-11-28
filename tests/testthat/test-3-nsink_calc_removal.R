@@ -2,6 +2,12 @@
 context("nsink_calc_removal")
 library(nsink)
 load(system.file("testdata.rda", package="nsink"))
+niantic_data$fdr <- terra::unwrap(niantic_data$fdr)
+niantic_data$impervious <- terra::unwrap(niantic_data$impervious)
+niantic_data$nlcd <- terra::unwrap(niantic_data$nlcd)
+niantic_data$raster_template <- terra::unwrap(niantic_data$raster_template)
+niantic_removal$raster_method$removal <- terra::unwrap(niantic_removal$raster_method$removal)
+niantic_removal$raster_method$type <- terra::unwrap(niantic_removal$raster_method$type)
 niantic_removal <- nsink_calc_removal(niantic_data)
 
 
@@ -12,15 +18,16 @@ test_that("calc removal returns as expected", {
 })
 
 test_that("removal object has correct classes", {
-  expect_s4_class(niantic_removal$raster_method, "RasterStack")
+  expect_s4_class(niantic_removal$raster_method$removal, "SpatRaster")
+  expect_s4_class(niantic_removal$raster_method$type, "SpatRaster")
   expect_s3_class(niantic_removal$land_off_network_removal, "sf")
   expect_s3_class(niantic_removal$land_off_network_removal_type, "sf")
   expect_s3_class(niantic_removal$network_removal, "sf")
 })
 
 test_that("removal values are all non-negative", {
-  expect_gte(min(raster::values(niantic_removal$raster_method), na.rm = TRUE), 0)
-  expect_gte(min(niantic_removal$land_off_network_removal$layer, na.rm = TRUE), 0)
+  expect_gte(min(terra::values(niantic_removal$raster_method$removal), na.rm = TRUE), 0)
+  expect_gte(min(niantic_removal$land_off_network_removal$n_removal, na.rm = TRUE), 0)
   expect_gte(min(niantic_removal$network_removal$n_removal, na.rm = TRUE), 0)
 })
 

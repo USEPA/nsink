@@ -19,6 +19,13 @@ knitr::opts_chunk$set(
   message = FALSE
 )
 load(system.file("testdata.rda", package="nsink"))
+niantic_download <- list(huc = "011000030304", data_dir = "nsink_niantic_data")
+niantic_removal$raster_method$removal <- terra::unwrap(niantic_removal$raster_method$removal)
+niantic_removal$raster_method$type <- terra::unwrap(niantic_removal$raster_method$type)
+niantic_static_maps$removal_effic <- terra::unwrap(niantic_static_maps$removal_effic)
+niantic_static_maps$loading_idx <- terra::unwrap(niantic_static_maps$loading_idx)
+niantic_static_maps$transport_idx <- terra::unwrap(niantic_static_maps$transport_idx)
+niantic_static_maps$delivery_idx <- terra::unwrap(niantic_static_maps$delivery_idx)
 ```
 
 ```{r setup, echo=FALSE}
@@ -238,12 +245,13 @@ the transport index  It represents which areas of the landscape are
 delivering the most nitrogen to the outflow of the watershed.
 
 ```{r static_maps, eval=FALSE}
+#Need to terra::wrap and add to testdata.rda, then unwrap up top
 niantic_static_maps <- nsink_generate_static_maps(niantic_data, niantic_removal, 
                                                   900)
 ```
 
 And with these static maps made, you can plot them quickly with 
-`nsink_plot()` and sepcifying which plot you would like to see with the `map` 
+`nsink_plot()` and specifying which plot you would like to see with the `map` 
 argument which can be "removal", "transport", or "delivery".  
 An example of `nsink_plot()` is below.
 

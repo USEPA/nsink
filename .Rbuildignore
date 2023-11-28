@@ -43,3 +43,7 @@ reviews
 ^docs$
 ^pkgdown$
 ^nsink-1.2.0\.zip$
+^doc$
+^Meta$
+^paper_files$
+^paper_cache$

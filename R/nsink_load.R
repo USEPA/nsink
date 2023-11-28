@@ -43,18 +43,19 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
                           mode = "standard")
   prep <- list(streams = st_read(paste0(input_folder,"streams.shp"), quiet = TRUE),
                lakes = st_read(paste0(input_folder,"lakes.shp"), quiet = TRUE),
-               fdr = readAll(raster(paste0(input_folder, "fdr.tif"))),
-               impervious = readAll(raster(paste0(input_folder, "impervious.tif"))),
-               nlcd = readAll(raster(paste0(input_folder, "nlcd.tif"))),
+               fdr = terra::rast(paste0(input_folder, "fdr.tif")),
+               impervious = terra::rast(paste0(input_folder, "impervious.tif")),
+               nlcd = terra::rast(paste0(input_folder, "nlcd.tif")),
                ssurgo = st_read(paste0(input_folder,"ssurgo.shp"), quiet = TRUE),
                q = read.csv(paste0(input_folder, "q.csv")),
                tot = read.csv(paste0(input_folder, "tot.csv")),
                lakemorpho = read.csv(paste0(input_folder, "lakemorpho.csv")),
                huc = huc_sf,
-               raster_template = raster::raster(as(huc_sf, "Spatial"),
-                                                   resolution = as.numeric(res),
-                                                   crs = projection(huc_sf))
+               raster_template = terra::rast(huc_sf,
+                                                resolution = as.numeric(res),
+                                                crs = st_crs(huc_sf)$wkt)
                )
+
   # The shapefile driver butchers output names, need to restore them.
   names(prep$streams) <- c("stream_comid", "fdate", "resolution", "gnis_id",
                            "gnis_name", "reachcode", "flowdir",
@@ -67,18 +68,18 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
                           "hydric_pct", "geometry")
 
 
-  #removal <- nsink_calc_removal(prep, ...)
-  load(paste0(input_folder,"removal.rda"))
-  removal <- get("nsink_removal")
+  suppressMessages(removal <- nsink_calc_removal(prep, ...))
+  #load(paste0(input_folder,"removal.rda"))
+  #removal <- get("nsink_removal")
   message("Reading in static maps...")
-  static <- list(removal_effic = readAll(raster(paste0(input_folder,
-                                                       "removal_effic.tif"))),
-                 loading_idx = readAll(raster(paste0(input_folder,
-                                                     "loading_idx.tif"))),
-                 transport_idx = readAll(raster(paste0(input_folder,
-                                                       "transport_idx.tif"))),
-                 delivery_idx = readAll(raster(paste0(input_folder,
-                                                      "delivery_idx.tif"))))
+  static <- list(removal_effic = terra::rast(paste0(input_folder,
+                                                       "removal_effic.tif")),
+                 loading_idx = terra::rast(paste0(input_folder,
+                                                     "loading_idx.tif")),
+                 transport_idx = terra::rast(paste0(input_folder,
+                                                       "transport_idx.tif")),
+                 delivery_idx = terra::rast(paste0(input_folder,
+                                                      "delivery_idx.tif")))
 
   fix_proj <- function(my_list, prj){
 
@@ -90,40 +91,42 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
                                             st_crs(prj) !=
                                             st_crs(x))))
     my_raster_new_prj <- which(unlist(lapply(my_list[my_raster],
-                                             function(x) projection(prj) != projection(x))))
+                                             function(x) st_crs(prj) != st_crs(x))))
     fix_sf <- my_sf[my_sf_new_proj]
     fix_raster <- my_raster[my_raster_new_prj]
     for(i in fix_raster){
-      my_list[[i]] <- raster::projectRaster(my_list[[i]], crs = projection(prj))
+      my_list[[i]] <- terra::project(my_list[[i]], crs = st_crs(prj)$wkt)
     }
     for(i in fix_sf){
-      my_list[[i]] <- st_transform(my_list[[i]], crs = st_crs(prj))
+      my_list[[i]] <- st_transform(my_list[[i]], crs = st_crs(prj)$wkt)
     }
     my_list
   }
+
   #Deal with possible CRS mismatches due to proj4 write and read
   if(!is.null(projection)){
     projection_template <- st_transform(prep[["streams"]], crs = projection)
     #prep <- fix_proj(prep, projection_template)
-
     prep <- list(streams = st_transform(prep[["streams"]], crs = projection),
                  lakes = st_transform(prep[["lakes"]], crs = projection),
                  fdr = prep[["fdr"]],
-                 impervious = raster::projectRaster(prep[["impervious"]],crs =
-                                                      projection(projection_template)),
-                 nlcd = raster::projectRaster(prep[["nlcd"]], crs =
-                                                projection(projection_template)),
+                 impervious = terra::project(prep[["impervious"]],
+                                             st_crs(projection_template)$wkt),
+                 nlcd = terra::project(prep[["nlcd"]],
+                                       st_crs(projection_template)$wkt),
                  ssurgo = st_transform(prep[["ssurgo"]], crs = projection),
                  q = prep[["q"]],
                  tot = prep[["tot"]],
                  lakemorpho = prep[["lakemorpho"]],
                  huc = st_transform(prep[["huc"]], crs = projection),
-                 raster_template = raster::projectRaster(prep[["raster_template"]],
-                                                         crs =
-                                                           projection(projection_template)))
+                 raster_template = terra::project(prep[["raster_template"]],
+                                                  st_crs(projection_template)$wkt))
+
     removal <- list(raster_method =
-                      raster::projectRaster(removal[["raster_method"]],
-                                            crs = projection(projection_template)),
+                      list(removal = terra::project(removal$raster_method$removal,
+                                     st_crs(projection_template)$wkt),
+                           type = terra::project(removal$raster_method$type,
+                                                    st_crs(projection_template)$wkt)),
                     land_off_network_removal =
                       st_transform(removal[["land_off_network_removal"]],
                                    crs = projection),
@@ -133,17 +136,17 @@ nsink_load <- function(input_folder, base_name = "nsink_", projection = NULL
                     network_removal = st_transform(removal[["network_removal"]],
                                                    crs = projection))
     static <- list(removal_effic =
-                     raster::projectRaster(static[["removal_effic"]],
-                                           crs = projection(projection_template)),
+                     terra::project(static[["removal_effic"]],
+                                    st_crs(projection_template)$wkt),
                    loading_idx =
-                     raster::projectRaster(static[["loading_idx"]],
-                                           crs = projection(projection_template)),
+                     terra::project(static[["loading_idx"]],
+                                    st_crs(projection_template)$wkt),
                    transport_idx =
-                     raster::projectRaster(static[["transport_idx"]],
-                                           crs = projection(projection_template)),
+                     terra::project(static[["transport_idx"]],
+                                    st_crs(projection_template)$wkt),
                    delivery_idx =
-                     raster::projectRaster(static[["delivery_idx"]],
-                                           crs = projection(projection_template)))
+                     terra::project(static[["delivery_idx"]],
+                                    st_crs(projection_template)$wkt))
   }
 
   assign(paste0(base_name,"data"), prep, envir = parent.frame())

@@ -5,6 +5,12 @@ test_that("build runs as expected", {
   library(nsink)
   library(sf)
   load(system.file("testdata.rda", package="nsink"))
+  niantic_data$fdr <- terra::unwrap(niantic_data$fdr)
+  niantic_data$impervious <- terra::unwrap(niantic_data$impervious)
+  niantic_data$nlcd <- terra::unwrap(niantic_data$nlcd)
+  niantic_data$raster_template <- terra::unwrap(niantic_data$raster_template)
+  niantic_removal$raster_method$removal <- terra::unwrap(niantic_removal$raster_method$removal)
+  niantic_removal$raster_method$type <- terra::unwrap(niantic_removal$raster_method$type)
   aea <- 5072
 
   nsink_build(nsink_get_huc_id("Niantic River")$huc_12, aea,

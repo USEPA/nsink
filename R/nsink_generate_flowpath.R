@@ -33,9 +33,16 @@ nsink_generate_flowpath <- function(starting_location, input_data){
     stop(paste0("The coordinate reference systems for your starting location and the input data do not match.  Re-project to a common reference system."))
   }
 
-  starting_location <- st_transform(starting_location, st_crs(input_data$fdr))
-  fp <- raster::flowPath(input_data$fdr, st_coordinates(starting_location))
-  fp <- raster::xyFromCell(input_data$fdr, fp)
+  starting_location <- st_transform(starting_location, crs = st_crs(input_data$fdr))
+  # flowPath code borrowed directly from raster, modified to work with terra
+
+  fp <- flowPath(input_data$fdr, st_coordinates(starting_location))
+  if(is.null(fp)){
+    warning("Flowpath returned NULL.")
+    return(list(flowpath_ends = NULL, flowpath_network = NULL))
+  } else {
+  fp <- terra::xyFromCell(input_data$fdr, fp)
+  }
   # Fixes cases with a single point flowpath: rare but annoying
   if(nrow(fp) == 1){
     dist <- units::set_units(1, "m")
@@ -138,7 +145,7 @@ nsink_get_flowline <- function(flowpath_ends, streams, tot){
   streams_tot <- suppressMessages(left_join(streams, tot))
   streams_tot <- filter(streams_tot, !is.na(.data$fromnode))
   streams_tot <- filter(streams_tot, !is.na(.data$tonode))
-  streams_df <- select(streams_tot, .data$fromnode, .data$tonode, .data$stream_comid)
+  streams_df <- select(streams_tot, "fromnode", "tonode", "stream_comid")
   st_geometry(streams_df) <- NULL
   streams_df <- mutate_all(streams_df, as.character)
   streams_g <- graph_from_data_frame(streams_df, directed = TRUE)
@@ -149,8 +156,8 @@ nsink_get_flowline <- function(flowpath_ends, streams, tot){
   to_nd_idx <- unlist(st_is_within_distance(flowpath_ends[2,], streams_tot, dist))
   from_nd <- streams_df[from_nd_idx,]$fromnode
   to_nd <- streams_df[to_nd_idx,]$tonode
-  #to_nd <- filter(streams_df, !.data$tonode %in% .data$fromnode)
-  #to_nd <- unique(pull(to_nd, .data$tonode))
+  #to_nd <- filter(streams_df, !tonode %in% fromnode)
+  #to_nd <- unique(pull(to_nd, tonode))
   idx <- shortest_paths(streams_g, from_nd, to_nd, output = "epath",
                         mode = "out")$epath[[1]]
   if(length(idx) == 0){
@@ -175,7 +182,7 @@ nsink_get_flowline <- function(flowpath_ends, streams, tot){
   fp_flowlines <- lwgeom::st_split(fp_flowlines, st_combine(fp_end_pt))
   fp_flowlines <- suppressWarnings(st_collection_extract(fp_flowlines,
                                                          "LINESTRING"))
-  #browser()
+
   #fp_flowlines1 <- filter(fp_flowlines, !st_overlaps(st_snap(fp_flowlines,
   #                                                          flowpath_ends[1,],
   #                                                          tol01),

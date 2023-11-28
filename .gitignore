@@ -37,3 +37,6 @@ archive_it
 docs
 nsink-1.2.0.zip
 huc_data
+nsink_test_data
+/doc/
+/Meta/
