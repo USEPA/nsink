@@ -71,7 +71,6 @@ Imports:
   units,
   archive,
   terra
-Remotes: ropensci/FedData
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
