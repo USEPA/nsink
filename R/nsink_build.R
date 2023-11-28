@@ -83,6 +83,7 @@ nsink_build <- function(huc, projection,
 
   # Write everything out to a folder
   message("Writing files...")
+
   nsink_write_prepped_data(nsink_prepped_data, output_dir)
   save(nsink_removal, file=paste0(output_dir, "removal.rda"), compress = "xz")
   nsink_write_static_maps(nsink_static_maps, output_dir)
@@ -97,6 +98,7 @@ nsink_build <- function(huc, projection,
 #' @param output_dir Output folder to save processed nsink files to
 #' @keywords internal
 nsink_write_prepped_data <- function(prepped_data, output_dir) {
+
   suppressWarnings(sf::st_write(prepped_data$streams, paste0(output_dir, "streams.shp"),
     delete_layer = TRUE, quiet = TRUE
   ))
@@ -117,7 +119,7 @@ nsink_write_prepped_data <- function(prepped_data, output_dir) {
     paste0(output_dir, "impervious.tif"),
     overwrite = TRUE
   )
-  terra::writeRaster(prepped_data$nlcd, paste0(output_dir, "nlcd.tif"),
+  terra::writeRaster(terra::as.int(prepped_data$nlcd), paste0(output_dir, "nlcd.tif"),
     overwrite = TRUE
   )
   readr::write_csv(prepped_data$q, paste0(output_dir, "q.csv"))

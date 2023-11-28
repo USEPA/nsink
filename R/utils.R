@@ -53,7 +53,7 @@ nsink_get_plus_remotepath <- function(rpu, component = c(
   }
   # https://dmap-data-commons-ow.s3.amazonaws.com/NHDPlusV21/Data/NHDPlusNE/NHDPlusV21_NE_01_01a_FdrFac_01.7z
   url_components <- wbd_lookup[wbd_lookup$RPU == rpu, ]
-  url_components <- select(url_components, .data$DrainageID, .data$VPUID, .data$RPU)
+  url_components <- select(url_components, "DrainageID", "VPUID", "RPU")
   url_components <- unique(url_components)
   baseurl <- paste0(
     "https://dmap-data-commons-ow.s3.amazonaws.com/NHDPlusV21/Data/NHDPlus",
@@ -215,24 +215,40 @@ flowPath <- function (x, p, ...)
   nc <- ncol(r)
   path <- NULL
   while (!is.na(x[cell])) {
+
     path <- c(path, cell)
     fd <- x[cell][,1]
-    fd <- as.numeric(levels(fd)[fd])
-    row <- if (fd %in% c(32, 64, 128))
+    #fd <- as.numeric(levels(fd)[fd])
+    row <- if(fd %in% c(32, 64, 128)){
       row - 1
-    else if (fd %in% c(8, 4, 2))
+    } else if (fd %in% c(8, 4, 2)){
       row + 1
-    else row
-    col <- if (fd %in% c(32, 16, 8))
+    } else {
+      row
+    }
+    col <- if (fd %in% c(32, 16, 8)) {
       col - 1
-    else if (fd %in% c(128, 1, 2))
+    } else if (fd %in% c(128, 1, 2)) {
       col + 1
-    else col
+    } else {
+      col
+    }
     cell <- terra::cellFromRowCol(r, row, col)
-    if (is.na(x[cell]))
+    if (is.na(x[cell])){
       break
-    if (cell %in% path)
+    }
+    if (cell %in% path){
       break
+    }
   }
   return(path)
 }
+
+#' Function to terra::wrap all SpatRaster/SpatVector in an input list.
+#'
+#' @param data_list a list with data in it to be wrapped.
+#' @keywords internal
+##wrap_it <- function(data_list){
+#  wrapper <-
+#  lapply(data_list, )
+#}

@@ -63,6 +63,7 @@ nsink_prep_data <- function(huc, projection,
     # Check for/create/clean data directory
     message("Preparing data for nsink analysis...")
     dirs <- list.dirs(data_dir, full.names = FALSE, recursive = FALSE)
+
     if (all(c("attr", "erom", "fdr", "imperv", "nhd", "ssurgo", "wbd", "nlcd") %in% dirs)) {
       huc_sf_file <- list.files(paste0(data_dir, "wbd"), "WBD_Subwatershed.shp", full.names = TRUE,
                                 recursive = TRUE)
@@ -107,9 +108,9 @@ nsink_prep_data <- function(huc, projection,
   } else if(length(rpus) == 2) {
     huc <- rbind(get(rpus[1])$huc, get(rpus[2])$huc)
     st_agr(huc) <- "constant"
-    huc <- st_cast(huc, "POLYGON")
-    huc_raster <- terra::rast(huc,resolution = as.numeric(res),
-                                 crs = sf::st_crs(huc))
+    huc <- st_cast(huc, "MULTIPOLYGON")
+    huc_raster <- terra::rast(huc, resolution = as.numeric(res),
+                                 crs = terra::crs(huc))
     list(
       streams = rbind(get(rpus[1])$streams, get(rpus[2])$streams),
       lakes = rbind(get(rpus[1])$lakes, get(rpus[2])$lakes),
@@ -157,9 +158,11 @@ nsink_prep_streams <- function(huc_sf, data_dir) {
     streams <- st_zm(streams)
     streams <- rename_all(streams, tolower)
     streams <- rename(streams,
-      stream_comid = .data$comid,
-      lake_comid = .data$wbareacomi
+      stream_comid = "comid",
+      lake_comid = "wbareacomi"
     )
+
+
     # Remove coastline
     streams <- filter(streams, .data$ftype != "Coastline")
     streams <- mutate(streams,
@@ -168,7 +171,8 @@ nsink_prep_streams <- function(huc_sf, data_dir) {
                         units::set_units(.data$lengthkm, "km"))
     streams <- streams[unlist(st_intersects(huc_sf, streams)),]
     streams <- filter(streams, .data$percent_length >= units::as_units(0.75))
-    streams <- select(streams, -.data$lengthkm, -.data$shape_leng, -.data$percent_length)
+    streams <- select(streams, -"lengthkm", -"shape_leng", -"percent_length")
+    #HERE HERE HERE HERE
     st_agr(streams) <- "constant"
     streams <- st_crop(streams, st_bbox(huc_sf))
     streams <- mutate_if(streams, is.factor, as.character())
@@ -203,7 +207,7 @@ nsink_prep_lakes <- function(huc_sf, data_dir) {
     lakes <- st_zm(lakes)
     lakes <- st_transform(lakes, st_crs(huc_sf))
     lakes <- rename_all(lakes, tolower)
-    lakes <- rename(lakes, lake_comid = .data$comid)
+    lakes <- rename(lakes, lake_comid = "comid")
     lakes <- filter(lakes, .data$ftype == "LakePond")
     lakes <- slice(lakes, unlist(st_intersects(huc_sf, lakes)))
   } else {
@@ -232,12 +236,19 @@ nsink_prep_fdr <- function(huc_sf, huc_raster, data_dir) {
                         full.names = TRUE)
   fdr_file <- fdr_file[grepl("fdr", basename(fdr_file))]
 
-  if (length(fdr_file == 1)) {
+  if (length(fdr_file) == 1) {
     message("Preparing flow direction...")
+
     fdr <- terra::rast(fdr_file)
+    # reading ArcInfo GRID (AIG) sources with terra then unwrap/wrap screws this up
+    # writing to tif then re-reading is a gross hack that works...
+    suppressWarnings({terra::writeRaster(fdr, paste0(dirname(fdr_file), "fdr.tif"),
+                       overwrite=TRUE)})
+    fdr <- terra::rast(paste0(dirname(fdr_file), "fdr.tif"))
     huc_sf <- st_transform(huc_sf, st_crs(fdr))
     fdr <- terra::crop(fdr, huc_sf)
     fdr <- terra::mask(fdr, huc_sf)
+
   } else {
     stop("The required data file does not exist.  Run nsink_get_data().")
   }
@@ -346,11 +357,8 @@ nsink_prep_ssurgo <- function(huc_sf, data_dir) {
   ssurgo <- rename_all(ssurgo, tolower)
   ssurgo <- mutate(ssurgo, mukey = as(.data$mukey, "character"))
   ssurgo_tbl <- mutate(ssurgo_tbl, mukey = as(.data$mukey, "character"))
-  ssurgo_tbl <- select(
-    ssurgo_tbl, .data$mukey, .data$cokey, .data$hydricrating,
-    .data$comppct.r, .data$compname, .data$drainagecl, .data$compkind,
-    .data$localphase
-  )
+  ssurgo_tbl <- select(ssurgo_tbl, "mukey", "cokey", "hydricrating", "comppct.r",
+                       "compname", "drainagecl", "compkind", "localphase")
 
 
   # Limiting hydric removal to only land-based sources of removal
@@ -360,16 +368,16 @@ nsink_prep_ssurgo <- function(huc_sf, data_dir) {
                                      "No",
                                    .data$drainagecl == "Subaqueous" ~
                                      "No",
-                                   TRUE ~ hydricrating))
+                                   TRUE ~ .data$hydricrating))
 
   hydric_tbl <- filter(ssurgo_tbl, .data$hydricrating == "Yes")
   hydric_tbl <- group_by(hydric_tbl, .data$mukey, .data$hydricrating)
   hydric_tbl <- summarize(hydric_tbl, hydric_pct = sum(.data$comppct.r))
   hydric_tbl <- ungroup(hydric_tbl)
-  ssurgo <- full_join(ssurgo, hydric_tbl, by = "mukey")
+  ssurgo <- full_join(ssurgo, hydric_tbl, by = "mukey", relationship = "many-to-many")
   ssurgo <- filter(ssurgo, .data$musym != "Ws")
-  ssurgo <- select(ssurgo, .data$areasymbol, .data$spatialver, .data$musym,
-                   .data$mukey, .data$hydricrating, .data$hydric_pct)
+  ssurgo <- select(ssurgo, "areasymbol", "spatialver", "musym",
+                   "mukey", "hydricrating", "hydric_pct")
   ssurgo
 }
 
@@ -389,7 +397,7 @@ nsink_prep_q <- function(data_dir) {
   if (length(erom_file == 1)) {
     message("Preparing stream flow...")
     q <- foreign::read.dbf(erom_file)
-    q <- select(q, stream_comid = .data$ComID, q_cfs = .data$Q0001E)
+    q <- select(q, stream_comid = "ComID", q_cfs = "Q0001E")
     q <- mutate(q,
       q_cms = .data$q_cfs * 0.028316846592,
       mean_reach_depth = 0.2612 * (.data$q_cms^0.3966)
@@ -418,8 +426,8 @@ nsink_prep_tot <- function(data_dir) {
     message("Preparing time of travel...")
     tot <- foreign::read.dbf(tot_file)
     tot <- rename_all(tot, tolower)
-    tot <- select(tot, stream_comid = .data$comid, totma = .data$totma,
-                  .data$fromnode, .data$tonode, stream_order = .data$streamorde)
+    tot <- select(tot, stream_comid = "comid", totma = "totma",
+                  "fromnode", "tonode", stream_order = "streamorde")
     tot <- mutate_if(tot, is.factor, as.character())
   } else {
     stop("The required data file does not exist.  Run nsink_get_data().")
@@ -445,11 +453,11 @@ nsink_prep_lakemorpho <- function(data_dir) {
     message("Preparing lake morphometry...")
     lakemorpho <- foreign::read.dbf(lm_file)
     lakemorpho <- rename_all(lakemorpho, tolower)
-    lakemorpho <- rename(lakemorpho, lake_comid = .data$comid)
+    lakemorpho <- rename(lakemorpho, lake_comid = "comid")
     lakemorpho <- mutate_if(lakemorpho, is.factor, as.character())
-    lakemorpho <- select(lakemorpho, .data$lake_comid, .data$meandepth,
-                         .data$lakevolume, .data$maxdepth, .data$meandused,
-                         .data$meandcode, .data$lakearea)
+    lakemorpho <- select(lakemorpho, "lake_comid", "meandepth",
+                         "lakevolume", "maxdepth", "meandused",
+                         "meandcode", "lakearea")
   } else {
     stop("The required data file does not exist.  Run nsink_get_data().")
   }
@@ -497,7 +505,7 @@ nsink_remove_openwater <- function(huc_sf, data_dir){
   ssurgo <- rename_all(ssurgo, tolower)
   ssurgo <- mutate(ssurgo, mukey = as(.data$mukey, "character"))
   ssurgo_tbl <- mutate(ssurgo_tbl, mukey = as(.data$mukey, "character"))
-  ssurgo <- full_join(ssurgo, ssurgo_tbl, by = "mukey")
+  ssurgo <- full_join(ssurgo, ssurgo_tbl, by = "mukey", relationship = "many-to-many")
   saltwater <- filter(ssurgo, .data$musym == "Ws")
   if(nrow(saltwater) > 0){
     huc_unit <- st_crs(huc_sf, parameters = TRUE)$ud_unit

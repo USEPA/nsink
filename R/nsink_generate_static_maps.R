@@ -50,6 +50,7 @@ nsink_generate_static_maps <- function(input_data, removal, samp_dens,
   n_delivery_heat <- terra::resample(n_delivery_heat, input_data$raster_template,
                                       method = "near")
   n_delivery_index <- n_load_idx * n_delivery_heat
+
   static_maps <- lapply(list(removal_effic = removal_map, loading_idx = n_load_idx,
               transport_idx = n_delivery_heat,delivery_idx = n_delivery_index),
          function(x) signif(x, 3))
@@ -129,7 +130,7 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
                                                as(sample_pts, "SpatVector")))
 
   if(any(is.na(fdr_check))){
-    sample_pts <- sample_pts[!is.na(fdr_check)]
+    sample_pts <- sample_pts[!is.na(fdr_check$fdr)]
     message("Note: NA values detected in flow direction grid.  Static maps still generated.")
   }
 
@@ -145,13 +146,14 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
     suppressPackageStartupMessages({
     for(i in seq_along(st_geometry(sample_pts))){
       setTxtProgressBar(pb, i)
-
+      #i<-4 hits issue - lots of missing stuf from fdr in up_west
       pt <- sample_pts[i]
       pt <- st_sf(st_sfc(pt, crs = st_crs(input_data$huc)))
 
       fp <- nsink_generate_flowpath(pt, input_data)
-
-      if(any(st_within(fp$flowpath_ends, input_data$huc, sparse = FALSE))){
+      if(is.null(fp$flowpath_ends)){
+        xdf[i,] <- data.frame(fp_removal = NA)
+      } else if(any(st_within(fp$flowpath_ends, input_data$huc, sparse = FALSE))){
         fp_summary <- nsink_summarize_flowpath(fp, removal)
 
         xdf[i,] <- data.frame(fp_removal = 100 - min(fp_summary$n_out))
@@ -211,7 +213,7 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
     #future:::ClusterRegistry("stop")
   }
 
-  sample_pts_removal <- dplyr::filter(sample_pts_removal, !is.na(.data$fp_removal))
+  sample_pts_removal <- dplyr::filter(sample_pts_removal, !is.na(fp_removal))
   message("\n Interpolating sampled flowpaths...")
 
   # Interp each poly separately
@@ -235,7 +237,7 @@ nsink_generate_n_removal_heatmap <- function(input_data, removal, samp_dens,
       xy <- st_coordinates(sample_pts_removal_huc_poly)
       xy_remove <- mutate(data.frame(xy),
                           fp_removal = sample_pts_removal_huc_poly$fp_removal)
-      xy_remove <- select(xy_remove, x = X, y = Y, fp_removal)
+      xy_remove <- select(xy_remove, x = "X", y = "Y", fp_removal)
     }
     if(nrow(sample_pts_removal_huc_poly)>= 2){
       interpolated_pts <- gstat::gstat(formula = fp_removal ~ 1,

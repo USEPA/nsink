@@ -38,7 +38,8 @@ nsink_summarize_flowpath <- function(flowpath, removal) {
   # Off Network based removal in flowpath ends
   type_poly <- st_cast(removal$land_off_network_removal_type, "POLYGON")
 
-  type_poly <- mutate(type_poly, type_id = paste0("type_", seq_along(.data$segment_type)))
+  type_poly <- mutate(type_poly,
+                      type_id = paste0("type_", seq_along(.data$segment_type)))
   st_agr(type_poly) <- "constant"
   removal_poly <- st_cast(removal$land_off_network_removal, "POLYGON")
   removal_poly <- mutate(removal_poly,
@@ -164,8 +165,8 @@ nsink_summarize_flowpath <- function(flowpath, removal) {
     # Section orders the data frame along the flowpath
     land_off_network_removal <- nsink_generate_from_to_nodes(
       land_off_network_removal)
-    lonr_g_df <- select(land_off_network_removal, .data$fromnode,
-                        .data$tonode, .data$edge_id)
+    lonr_g_df <- select(land_off_network_removal, "fromnode",
+                        "tonode", "edge_id")
     lonr_g_df <- st_set_geometry(lonr_g_df, NULL)
     lonr_g <- graph_from_data_frame(lonr_g_df)
     start_pt <- lwgeom::st_startpoint(flowpath$flowpath_ends[1,])
@@ -181,7 +182,7 @@ nsink_summarize_flowpath <- function(flowpath, removal) {
                                            mode = "out")$epath[[1]])
     lonr_ids <- edge_attr(lonr_g, "edge_id", idx)
     land_off_network_removal <- slice(land_off_network_removal,
-                                      match(lonr_ids,.data$edge_id))
+                                      match(lonr_ids, .data$edge_id))
     land_off_network_removal <- mutate(land_off_network_removal,
                                        ordered = seq_along(.data$edge_id))
 
@@ -195,7 +196,7 @@ nsink_summarize_flowpath <- function(flowpath, removal) {
     land_off_network_removal_df <- mutate(land_off_network_removal_df,
                                           n_removal = case_when(
                                             is.na(.data$n_removal) ~ 0,
-                                            .data$segment_type == 0 ~0,
+                                            .data$segment_type == 0 ~ 0,
                                             TRUE ~ .data$n_removal),
                                           segment_id = nsink_create_segment_ids(
                                             paste(.data$segment_type,
@@ -217,7 +218,7 @@ nsink_summarize_flowpath <- function(flowpath, removal) {
   if (!is.null(flowpath$flowpath_network)) {
     n_removal_df <- select(
       st_drop_geometry(removal$network_removal),
-      .data$stream_comid, .data$n_removal
+      "stream_comid", "n_removal"
     )
     flowpath_removal <- suppressMessages(left_join(flowpath$flowpath_network,
                                                    n_removal_df))
@@ -238,8 +239,8 @@ nsink_summarize_flowpath <- function(flowpath, removal) {
     )
 
     flowpath_removal_df <- select(
-      flowpath_removal_df, .data$stream_comid,
-      .data$lake_comid, .data$n_removal, .data$segment_type, length
+      flowpath_removal_df, "stream_comid",
+      "lake_comid", "n_removal", "segment_type", "length"
     )
     flowpath_removal_df <- mutate(flowpath_removal_df,
       segment_id =
@@ -258,7 +259,7 @@ nsink_summarize_flowpath <- function(flowpath, removal) {
                             percent_removal = signif(.data$percent_removal, 3),
                             n_in = signif(.data$n_in, 3),
                             n_out = signif(.data$n_out, 3))
-  removal_summary <- rename(removal_summary, length_meters = length)
+  removal_summary <- rename(removal_summary, length_meters = "length")
   return(removal_summary)
 }
 
@@ -320,7 +321,8 @@ nsink_create_summary <- function(land_removal, network_removal) {
         .data$segment_type == 6 ~ "Off Network Canal/Ditch"
       )
     )
-    land_removal_df <- group_by(land_removal_df, .data$segment_id, .data$segment_type, .data$remove_id)
+    land_removal_df <- group_by(land_removal_df, .data$segment_id,
+                                .data$segment_type, .data$remove_id)
     land_removal_df <- summarize(land_removal_df,
       length = sum(.data$length),
       n_removal = max(.data$n_removal)
@@ -344,19 +346,19 @@ nsink_create_summary <- function(land_removal, network_removal) {
     land_removal_df <- group_by(land_removal_df, .data$segment_type, .data$group_id)
     land_removal_df <- summarize(land_removal_df,
       segment_id = min(.data$segment_id),
-      n_removal = wgt_avg_removal(length, .data$n_removal),
+      n_removal = wgt_avg_removal(.data$length, .data$n_removal),
       length = sum(.data$length))
     land_removal_df <- ungroup(land_removal_df)
     land_removal_df <- arrange(land_removal_df, .data$segment_id)
-    land_removal_df <- select(land_removal_df, .data$segment_id,
-                              .data$segment_type, .data$length,.data$n_removal)
+    land_removal_df <- select(land_removal_df, "segment_id",
+                              "segment_type", "length", "n_removal")
 
   if (!is.null(network_removal)) {
     # Multiple stream segments in a single lake also increases removal for a
     # lake by a factor of the number of segments.  This code results in only a
     # single n removal per lake based on that lakes estimated percent removal
-    network_removal_df <- select(network_removal, .data$segment_id, .data$segment_type,
-                                 .data$length, .data$n_removal)
+    network_removal_df <- select(network_removal, "segment_id", "segment_type",
+                                 "length", "n_removal")
     network_removal_df <- group_by(network_removal_df, .data$segment_id)
     network_removal_df <- mutate(network_removal_df, length = sum(.data$length))
     network_removal_df <- filter(network_removal_df, !duplicated(.data$segment_id))
@@ -382,8 +384,8 @@ nsink_create_summary <- function(land_removal, network_removal) {
     percent_removal = .data$n_removal * 100
   )
   flowpath_removal_summary <- select(
-    flowpath_removal_summary, .data$segment_type,
-    length, .data$percent_removal, .data$n_in, .data$n_out
+    flowpath_removal_summary, "segment_type",
+    "length", "percent_removal", "n_in", "n_out"
   )
   #round 2, 2, and 3
   flowpath_removal_summary <- mutate(flowpath_removal_summary,
@@ -408,7 +410,7 @@ nsink_generate_from_to_nodes <- function(land_off_network){
   land_off_network_geo <- sf::st_transform(land_off_network, crs = 4326)
   nodes <- as_tibble(st_coordinates(land_off_network_geo))
   nodes <- mutate(nodes, X = round(.data$X, 8), Y = round(.data$Y, 8))
-  nodes <- rename(nodes, edge_id = .data$L1)
+  nodes <- rename(nodes, edge_id = "L1")
   nodes <- group_by(nodes, .data$edge_id)
   nodes <- slice(nodes, c(1, n()))
   nodes <- ungroup(nodes)
@@ -419,7 +421,7 @@ nsink_generate_from_to_nodes <- function(land_off_network){
   nodes <- group_by(nodes, .data$grouping)
   nodes <- mutate(nodes, node_id = cur_group_id())
   nodes <- ungroup(nodes)
-  nodes <- select(nodes, -.data$xy, -.data$grouping)
+  nodes <- select(nodes, -"xy", -"grouping")
 
   source_nodes <- filter(nodes, .data$start_end == 'start')
   source_nodes <-pull(source_nodes, .data$node_id)
@@ -427,7 +429,8 @@ nsink_generate_from_to_nodes <- function(land_off_network){
   target_nodes <- filter(nodes, .data$start_end == 'end')
   target_nodes <- pull(target_nodes, .data$node_id)
 
-  land_off_network <- mutate(ungroup(land_off_network), fromnode = source_nodes,
+  land_off_network <- mutate(ungroup(land_off_network),
+                             fromnode = source_nodes,
                              tonode = target_nodes)
   land_off_network
 }
@@ -438,16 +441,17 @@ nsink_generate_from_to_nodes <- function(land_off_network){
 #' @keywords internal
 nsink_group_land_off_network <- function(land_removal_df){
 
-  land_removal_df <- mutate(land_removal_df, group_id = case_when(segment_type == "No Removal" ~
+  land_removal_df <- mutate(land_removal_df,
+                            group_id = case_when(.data$segment_type == "No Removal" ~
                                                  "1",
-                                               segment_type == "Hydric" ~
-                                                 "2",
-                                               segment_type == "Off Network Stream" ~
-                                                 .data$remove_id,
-                                               segment_type == "Off Network Canal/Ditch" ~
-                                                 .data$remove_id,
-                                               segment_type == "Off Network Lake" ~
-                                                 .data$remove_id,
-                                               TRUE ~ as.character(.data$segment_id)))
+                                                 .data$segment_type == "Hydric" ~ "2",
+                                                 .data$segment_type == "Off Network Stream" ~
+                                                   .data$remove_id,
+                                                 .data$segment_type == "Off Network Canal/Ditch" ~
+                                                   .data$remove_id,
+                                                 .data$segment_type == "Off Network Lake" ~
+                                                   .data$remove_id,
+                                                 TRUE ~
+                                                   as.character(.data$segment_id)))
   land_removal_df
 }

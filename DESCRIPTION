@@ -56,7 +56,6 @@ Imports:
   raster,
   httr,
   dplyr,
-  fasterize,
   zoo,
   igraph,
   lwgeom,
